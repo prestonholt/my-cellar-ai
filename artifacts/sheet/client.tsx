@@ -3,7 +3,7 @@ import {
   CopyIcon,
   LineChartIcon,
   RedoIcon,
-  SparklesIcon,
+  WineBottleIcon,
   UndoIcon,
 } from '@/components/icons';
 import { SpreadsheetEditor } from '@/components/sheet-editor';
@@ -92,7 +92,7 @@ export const sheetArtifact = new Artifact<'sheet', Metadata>({
   toolbar: [
     {
       description: 'Format and clean data',
-      icon: <SparklesIcon />,
+      icon: <WineBottleIcon />,
       onClick: ({ appendMessage }) => {
         appendMessage({
           role: 'user',
