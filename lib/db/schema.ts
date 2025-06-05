@@ -168,3 +168,27 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const cellarTrackerCredentials = pgTable('CellarTrackerCredentials', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  username: varchar('username', { length: 255 }).notNull(),
+  password: varchar('password', { length: 255 }).notNull(),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+});
+
+export type CellarTrackerCredentials = InferSelectModel<typeof cellarTrackerCredentials>;
+
+export const cellarData = pgTable('CellarData', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  data: json('data').notNull(),
+  fetchedAt: timestamp('fetchedAt').notNull().defaultNow(),
+});
+
+export type CellarData = InferSelectModel<typeof cellarData>;

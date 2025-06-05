@@ -27,6 +27,8 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  cellarTrackerCredentials,
+  cellarData,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -533,6 +535,141 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       'bad_request:database',
       'Failed to get stream ids by chat id',
+    );
+  }
+}
+
+// CellarTracker related queries
+export async function getCellarTrackerCredentials(userId: string) {
+  try {
+    const credentials = await db
+      .select()
+      .from(cellarTrackerCredentials)
+      .where(eq(cellarTrackerCredentials.userId, userId))
+      .limit(1);
+    
+    return credentials[0] || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get CellarTracker credentials',
+    );
+  }
+}
+
+export async function hasValidCellarTrackerSetup(userId: string) {
+  try {
+    // Check if user has stored credentials
+    const credentials = await getCellarTrackerCredentials(userId);
+    if (!credentials) {
+      return false;
+    }
+
+    // Check if we have recent valid cellar data (within last 7 days for validation)
+    const recentData = await getCellarData(userId, 24 * 7); // 7 days
+    if (recentData && recentData.data && recentData.data.length > 0) {
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    return false;
+  }
+}
+
+export async function getCellarStats(userId: string) {
+  try {
+    const cellarData = await getCellarData(userId, 24 * 7); // 7 days
+    if (cellarData && cellarData.data) {
+      return {
+        wineCount: cellarData.data.length,
+        lastUpdated: cellarData.fetchedAt
+      };
+    }
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function saveCellarTrackerCredentials({
+  userId,
+  username,
+  password,
+}: {
+  userId: string;
+  username: string;
+  password: string;
+}) {
+  try {
+    const existing = await getCellarTrackerCredentials(userId);
+    
+    if (existing) {
+      await db
+        .update(cellarTrackerCredentials)
+        .set({
+          username,
+          password,
+          updatedAt: new Date(),
+        })
+        .where(eq(cellarTrackerCredentials.userId, userId));
+    } else {
+      await db.insert(cellarTrackerCredentials).values({
+        userId,
+        username,
+        password,
+      });
+    }
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to save CellarTracker credentials',
+    );
+  }
+}
+
+export async function getCellarData(userId: string, hoursOld = 24) {
+  try {
+    const cutoffDate = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
+    
+    const data = await db
+      .select()
+      .from(cellarData)
+      .where(
+        and(
+          eq(cellarData.userId, userId),
+          gte(cellarData.fetchedAt, cutoffDate)
+        )
+      )
+      .orderBy(desc(cellarData.fetchedAt))
+      .limit(1);
+    
+    return data[0] || null;
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to get cellar data',
+    );
+  }
+}
+
+export async function saveCellarData({
+  userId,
+  data,
+}: {
+  userId: string;
+  data: any;
+}) {
+  try {
+    await db.insert(cellarData).values({
+      userId,
+      data,
+      fetchedAt: new Date(),
+    });
+  } catch (error) {
+    throw new ChatSDKError(
+      'bad_request:database',
+      'Failed to save cellar data',
     );
   }
 }

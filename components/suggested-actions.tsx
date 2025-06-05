@@ -19,24 +19,24 @@ function PureSuggestedActions({
 }: SuggestedActionsProps) {
   const suggestedActions = [
     {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
+      title: 'What wine should I pair',
+      label: 'with grilled salmon tonight?',
+      action: 'What wine should I pair with grilled salmon tonight?',
     },
     {
-      title: 'Write code to',
-      label: `demonstrate djikstra's algorithm`,
-      action: `Write code to demonstrate djikstra's algorithm`,
+      title: 'Show me wines',
+      label: 'ready to drink this year',
+      action: 'Show me wines from my cellar that are ready to drink this year',
     },
     {
-      title: 'Help me write an essay',
-      label: `about silicon valley`,
-      action: `Help me write an essay about silicon valley`,
+      title: 'Recommend a special bottle',
+      label: 'for my anniversary dinner',
+      action: 'Recommend a special bottle from my collection for my anniversary dinner',
     },
     {
-      title: 'What is the weather',
-      label: 'in San Francisco?',
-      action: 'What is the weather in San Francisco?',
+      title: 'What are my most',
+      label: 'valuable wines right now?',
+      action: 'What are my most valuable wines right now?',
     },
   ];
 

@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
+import { CellarTrackerForm } from './cellartracker-form';
 import type { UseChatHelpers } from '@ai-sdk/react';
 
 const PurePreviewMessage = ({
@@ -40,6 +41,12 @@ const PurePreviewMessage = ({
   requiresScrollPadding: boolean;
 }) => {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string>('');
+  const [connectionSuccess, setConnectionSuccess] = useState<{
+    message: string;
+    wineCount: number;
+  } | null>(null);
 
   return (
     <AnimatePresence>
@@ -183,6 +190,57 @@ const PurePreviewMessage = ({
                           args={args}
                           isReadonly={isReadonly}
                         />
+                      ) : toolName === 'connectCellarTracker' ? (
+                        <div className="flex flex-col items-center gap-4 w-full">
+                          {!connectionSuccess && (
+                            <CellarTrackerForm
+                              onSubmit={async (credentials) => {
+                                setIsConnecting(true);
+                                setConnectionError('');
+                                try {
+                                  const response = await fetch('/api/cellartracker', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(credentials),
+                                  });
+                                  
+                                  const data = await response.json();
+                                  
+                                  if (!response.ok) {
+                                    throw new Error(data.error || 'Failed to connect to CellarTracker');
+                                  }
+                                  
+                                  // Success
+                                  setConnectionSuccess({
+                                    message: `Successfully connected to CellarTracker!`,
+                                    wineCount: data.data.length
+                                  });
+                                  
+                                  // Refresh the page to update the chat input availability
+                                  setTimeout(() => {
+                                    window.location.reload();
+                                  }, 2000);
+                                } catch (error) {
+                                  // Show error inline
+                                  setConnectionError(error instanceof Error ? error.message : 'Failed to connect');
+                                } finally {
+                                  setIsConnecting(false);
+                                }
+                              }}
+                              isLoading={isConnecting}
+                              error={connectionError}
+                            />
+                          )}
+                          
+                          {connectionSuccess && (
+                            <div className="p-4 rounded-lg border max-w-md w-full text-center bg-green-50 border-green-200 text-green-800">
+                              <p className="font-medium">{connectionSuccess.message}</p>
+                              <p className="text-sm mt-1">
+                                Found {connectionSuccess.wineCount} wines in your cellar
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       ) : null}
                     </div>
                   );
@@ -212,6 +270,22 @@ const PurePreviewMessage = ({
                           result={result}
                           isReadonly={isReadonly}
                         />
+                      ) : toolName === 'connectCellarTracker' ? (
+                        <div className="flex justify-center w-full">
+                          <div className={cn(
+                            "p-4 rounded-lg border max-w-md w-full text-center",
+                            result.success 
+                              ? "bg-green-50 border-green-200 text-green-800" 
+                              : "bg-red-50 border-red-200 text-red-800"
+                          )}>
+                            <p className="font-medium">{result.message}</p>
+                            {result.success && result.wineCount !== undefined && (
+                              <p className="text-sm mt-1">
+                                Found {result.wineCount} wines in your cellar
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}

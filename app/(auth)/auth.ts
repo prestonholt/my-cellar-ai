@@ -37,6 +37,10 @@ export const {
   signOut,
 } = NextAuth({
   ...authConfig,
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days for guest users
+  },
   providers: [
     Credentials({
       credentials: {},

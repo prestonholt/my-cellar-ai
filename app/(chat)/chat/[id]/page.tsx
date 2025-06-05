@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
+import { getChatById, getMessagesByChatId, hasValidCellarTrackerSetup } from '@/lib/db/queries';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import type { DBMessage } from '@/lib/db/schema';
@@ -38,6 +38,9 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     id,
   });
 
+  // Check if user has valid CellarTracker setup
+  const hasValidSetup = await hasValidCellarTrackerSetup(session.user.id);
+
   function convertToUIMessages(messages: Array<DBMessage>): Array<UIMessage> {
     return messages.map((message) => ({
       id: message.id,
@@ -65,6 +68,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
           isReadonly={session?.user?.id !== chat.userId}
           session={session}
           autoResume={true}
+          hasValidCellarTrackerSetup={hasValidSetup}
         />
         <DataStreamHandler id={id} />
       </>
@@ -81,6 +85,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
         isReadonly={session?.user?.id !== chat.userId}
         session={session}
         autoResume={true}
+        hasValidCellarTrackerSetup={hasValidSetup}
       />
       <DataStreamHandler id={id} />
     </>
