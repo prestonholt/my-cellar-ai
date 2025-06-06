@@ -30,20 +30,11 @@ export default async function Page() {
       id: generateUUID(),
       role: 'assistant',
       content:
-        "Welcome to My Cellar AI! I'm here to help you discover the perfect wine from your collection. To get started, please provide your CellarTracker credentials so I can access your wine inventory.",
+        "Welcome to My Cellar AI! I'm here to help you discover the perfect wine from your collection. I can help you search your wines, analyze your cellar's value, suggest food pairings, and much more. What would you like to explore today?",
       parts: [
         {
           type: 'text',
-          text: "Welcome to My Cellar AI! I'm here to help you discover the perfect wine from your collection. To get started, please provide your CellarTracker credentials so I can access your wine inventory.",
-        },
-        {
-          type: 'tool-invocation',
-          toolInvocation: {
-            toolName: 'connectCellarTracker',
-            toolCallId: generateUUID(),
-            state: 'call',
-            args: {},
-          },
+          text: "Welcome to My Cellar AI! I'm here to help you discover the perfect wine from your collection. I can help you search your wines, analyze your cellar's value, suggest food pairings, and much more. What would you like to explore today?",
         },
       ],
       createdAt: new Date(),

@@ -9,6 +9,18 @@ const nextConfig: NextConfig = {
       {
         hostname: 'avatar.vercel.sh',
       },
+      {
+        hostname: 'cdn.ct-static.com',
+        protocol: 'https',
+      },
+      {
+        hostname: 'static.cellartracker.com',
+        protocol: 'https',
+      },
+      {
+        hostname: 'www.cellartracker.com',
+        protocol: 'https',
+      },
     ],
   },
 };

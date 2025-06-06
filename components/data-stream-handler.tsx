@@ -17,8 +17,31 @@ export type DataStreamDelta = {
     | 'suggestion'
     | 'clear'
     | 'finish'
-    | 'kind';
-  content: string | Suggestion;
+    | 'kind'
+    | 'wine-cards';
+  content: string | Suggestion | WineCardsData;
+};
+
+export type WineCardsData = {
+  wineCards: Array<{
+    id: string;
+    wine: string;
+    vintage?: string;
+    producer?: string;
+    region?: string;
+    varietal?: string;
+    location?: string;
+    bin?: string;
+    price?: string;
+    valuation?: string;
+    readyToDrink?: boolean;
+    bottleImageUrl?: string | null;
+    tastingNotesSummary?: string | null;
+    professionalReviews?: string[];
+    communityScore?: string | null;
+    cellarTrackerUrl?: string | null;
+  }>;
+  contextMessage?: string;
 };
 
 export function DataStreamHandler({ id }: { id: string }) {

@@ -23,7 +23,15 @@ import { createDocument } from '@/lib/ai/tools/create-document';
 import { updateDocument } from '@/lib/ai/tools/update-document';
 import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
-import { connectCellarTracker } from '@/lib/ai/tools/connect-cellartracker';
+import { filterWines } from '@/lib/ai/tools/filter-wines';
+import { summarizeInventory } from '@/lib/ai/tools/summarize-inventory';
+import { analyzeValue } from '@/lib/ai/tools/analyze-value';
+import { suggestFoodPairing } from '@/lib/ai/tools/suggest-food-pairing';
+import { getTastingNotes } from '@/lib/ai/tools/get-tasting-notes';
+import { retrieveNotesContext } from '@/lib/ai/tools/retrieve-notes-context';
+import { getAvailableWineOptions } from '@/lib/ai/tools/get-available-wine-options';
+import { createWineCards } from '@/lib/ai/tools/create-wine-cards';
+import { wineDataAnalytics } from '@/lib/ai/tools/wine-data-analytics';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -160,7 +168,15 @@ export async function POST(request: Request) {
                   'createDocument',
                   'updateDocument',
                   'requestSuggestions',
-                  'connectCellarTracker',
+                  'filterWines',
+                  'summarizeInventory',
+                  'analyzeValue',
+                  'suggestFoodPairing',
+                  'getTastingNotes',
+                  'retrieveNotesContext',
+                  'getAvailableWineOptions',
+                  'createWineCards',
+                  'wineDataAnalytics',
                 ],
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
@@ -172,7 +188,15 @@ export async function POST(request: Request) {
               session,
               dataStream,
             }),
-            connectCellarTracker,
+            filterWines: filterWines({ session }),
+            summarizeInventory: summarizeInventory({ session }),
+            analyzeValue: analyzeValue({ session }),
+            suggestFoodPairing: suggestFoodPairing({ session }),
+            getTastingNotes,
+            retrieveNotesContext: retrieveNotesContext({ session }),
+            getAvailableWineOptions: getAvailableWineOptions({ session }),
+            createWineCards: createWineCards({ session }),
+            wineDataAnalytics: wineDataAnalytics({ session }),
           },
           onFinish: async ({ response }) => {
             if (session.user?.id) {

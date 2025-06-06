@@ -19,6 +19,9 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import { CellarTrackerForm } from './cellartracker-form';
+import { WineCardsGrid } from './wine-card';
+import { ToolResultSummary } from './tool-result-summary';
+import { WineAnalyticsChart } from './wine-analytics-chart';
 import type { UseChatHelpers } from '@ai-sdk/react';
 
 const PurePreviewMessage = ({
@@ -190,56 +193,31 @@ const PurePreviewMessage = ({
                           args={args}
                           isReadonly={isReadonly}
                         />
-                      ) : toolName === 'connectCellarTracker' ? (
-                        <div className="flex flex-col items-center gap-4 w-full">
-                          {!connectionSuccess && (
-                            <CellarTrackerForm
-                              onSubmit={async (credentials) => {
-                                setIsConnecting(true);
-                                setConnectionError('');
-                                try {
-                                  const response = await fetch('/api/cellartracker', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify(credentials),
-                                  });
-                                  
-                                  const data = await response.json();
-                                  
-                                  if (!response.ok) {
-                                    throw new Error(data.error || 'Failed to connect to CellarTracker');
-                                  }
-                                  
-                                  // Success
-                                  setConnectionSuccess({
-                                    message: `Successfully connected to CellarTracker!`,
-                                    wineCount: data.data.length
-                                  });
-                                  
-                                  // Refresh the page to update the chat input availability
-                                  setTimeout(() => {
-                                    window.location.reload();
-                                  }, 2000);
-                                } catch (error) {
-                                  // Show error inline
-                                  setConnectionError(error instanceof Error ? error.message : 'Failed to connect');
-                                } finally {
-                                  setIsConnecting(false);
-                                }
-                              }}
-                              isLoading={isConnecting}
-                              error={connectionError}
-                            />
-                          )}
-                          
-                          {connectionSuccess && (
-                            <div className="p-4 rounded-lg border max-w-md w-full text-center bg-green-50 border-green-200 text-green-800">
-                              <p className="font-medium">{connectionSuccess.message}</p>
-                              <p className="text-sm mt-1">
-                                Found {connectionSuccess.wineCount} wines in your cellar
-                              </p>
+                      ) : toolName === 'createWineCards' ? (
+                        <div className="flex justify-center w-full">
+                          <div className="text-sm text-gray-600">
+                            Creating wine cards...
+                          </div>
+                        </div>
+                      ) : toolName === 'wineDataAnalytics' ? (
+                        <div className="w-full max-w-6xl mx-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="p-6 border-b border-gray-200">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Analyzing Wine Data</h3>
+                            <p className="text-sm text-gray-600 mb-4">Processing your request and generating insights...</p>
+                            <div className="flex items-center space-x-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                              <span className="text-sm text-gray-500">Generating SQL query and visualization</span>
                             </div>
-                          )}
+                          </div>
+                          <div className="p-6">
+                            <div className="animate-pulse">
+                              <div className="h-64 bg-gray-200 rounded-lg mb-4"></div>
+                              <div className="space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ) : null}
                     </div>
@@ -270,24 +248,39 @@ const PurePreviewMessage = ({
                           result={result}
                           isReadonly={isReadonly}
                         />
-                      ) : toolName === 'connectCellarTracker' ? (
-                        <div className="flex justify-center w-full">
-                          <div className={cn(
-                            "p-4 rounded-lg border max-w-md w-full text-center",
-                            result.success 
-                              ? "bg-green-50 border-green-200 text-green-800" 
-                              : "bg-red-50 border-red-200 text-red-800"
-                          )}>
-                            <p className="font-medium">{result.message}</p>
-                            {result.success && result.wineCount !== undefined && (
-                              <p className="text-sm mt-1">
-                                Found {result.wineCount} wines in your cellar
-                              </p>
-                            )}
-                          </div>
+                      ) : toolName === 'createWineCards' ? (
+                        <div className="w-full">
+                          {result.wineCards && result.wineCards.length > 0 ? (
+                            <WineCardsGrid wines={result.wineCards} contextMessage={result.contextMessage} />
+                          ) : (
+                            <div className="text-center text-gray-500 py-4">
+                              No wine cards to display
+                            </div>
+                          )}
+                        </div>
+                      ) : toolName === 'wineDataAnalytics' ? (
+                        <div className="w-full">
+                          {(result.type === 'wine-analytics' || result.type === 'dynamic-wine-analytics') && result.config ? (
+                            <WineAnalyticsChart
+                              title={result.config.title}
+                              description={result.config.description}
+                              chartData={result.chartData}
+                              data={result.data}
+                              summary={result.summary}
+                              chartType={result.config.type}
+                              xField={result.config.xField}
+                              yField={result.config.yField}
+                              colorField={result.config.colorField}
+                              insights={result.insights}
+                            />
+                          ) : (
+                            <div className="text-center text-gray-500 py-4">
+                              Unable to display analytics
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <pre>{JSON.stringify(result, null, 2)}</pre>
+                        <ToolResultSummary toolName={toolName} result={result} />
                       )}
                     </div>
                   );
@@ -350,7 +343,7 @@ export const ThinkingMessage = () => {
 
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-4 text-muted-foreground">
-            Hmm...
+            Thinking...
           </div>
         </div>
       </div>
