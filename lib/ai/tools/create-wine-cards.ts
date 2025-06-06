@@ -66,18 +66,23 @@ export const createWineCards = ({ session }: CreateWineCardsProps) =>
         // If we have an iWine ID, fetch detailed data from CellarTracker
         if (wine.iWine) {
           try {
-            const detailedData = await getTastingNotesQuery({ iWine: wine.iWine });
+            const detailedResponse = await getTastingNotesQuery({ iWine: wine.iWine });
             
-            wineCardData = {
-              ...wineCardData,
-              bottleImageUrl: detailedData.bottleImageUrl || null,
-              professionalReviews: detailedData.professionalReviews || [],
-              communityScore: detailedData.communityScore || null,
-              cellarTrackerUrl: detailedData.cellarTrackerUrl || null,
-            };
+            // Check if the response was successful and has wine data
+            if (detailedResponse.success && detailedResponse.wineData) {
+              const detailedData = detailedResponse.wineData;
+              console.log(`Fetched data for ${wine.wine}: ${detailedData.tastingNotes?.length || 0} tasting notes`);
+              
+              wineCardData = {
+                ...wineCardData,
+                bottleImageUrl: detailedData.bottleImageUrl || null,
+                professionalReviews: detailedData.professionalReviews || [],
+                communityScore: detailedData.communityScore || null,
+                cellarTrackerUrl: `https://www.cellartracker.com/wine.asp?iWine=${wine.iWine}`,
+              };
 
-            // Use LLM to summarize the tasting notes
-            if (detailedData.scrapedTastingNotes && detailedData.scrapedTastingNotes.length > 0) {
+              // Use LLM to summarize the tasting notes
+              if (detailedData.tastingNotes && detailedData.tastingNotes.length > 0) {
               try {
                 // Prepare the prompt for LLM summarization
                 const wineName = `${wine.wine} ${wine.vintage || ''}`.trim();
@@ -92,7 +97,7 @@ export const createWineCards = ({ session }: CreateWineCardsProps) =>
                 }
                 
                 notesText += `Community Tasting Notes:\n`;
-                detailedData.scrapedTastingNotes.forEach((note, index) => {
+                detailedData.tastingNotes.forEach((note, index) => {
                   notesText += `${index + 1}. `;
                   if (note.date) notesText += `[${note.date}] `;
                   if (note.reviewer) notesText += `${note.reviewer}: `;
@@ -127,26 +132,22 @@ ${notesText}`;
                 });
 
                 wineCardData.tastingNotesSummary = text.trim();
-              } catch (error) {
-                console.error('Error summarizing tasting notes:', error);
-                // Fallback to simple concatenation
-                const simpleNotes = detailedData.scrapedTastingNotes
-                  .filter(note => note.note && note.note.length > 10)
-                  .slice(0, 2)
-                  .map(note => note.note)
-                  .join(' ');
-                wineCardData.tastingNotesSummary = simpleNotes || null;
+                console.log(`Generated tasting notes summary for ${wine.wine}: "${text.trim()}"`);
+                } catch (error) {
+                  console.error('Error summarizing tasting notes:', error);
+                  // Fallback to simple concatenation
+                  const simpleNotes = detailedData.tastingNotes
+                    .filter(note => note.note && note.note.length > 10)
+                    .slice(0, 2)
+                    .map(note => note.note)
+                    .join(' ');
+                  wineCardData.tastingNotesSummary = simpleNotes || null;
+                }
               }
             } else {
-              // Fallback to database notes if no scraped notes
-              const fallbackNotes = [detailedData.communityNotes, detailedData.bottleNote]
-                .filter(Boolean)
-                .join('. ');
-              if (fallbackNotes.length > 10) {
-                wineCardData.tastingNotesSummary = fallbackNotes.length > 200 
-                  ? fallbackNotes.substring(0, 200) + '...' 
-                  : fallbackNotes;
-              }
+              console.log(`Failed to fetch tasting notes for iWine ${wine.iWine}:`, detailedResponse.message || 'Unknown error');
+              // Even if detailed fetch failed, try to get basic data from database and generate a summary
+              wineCardData.cellarTrackerUrl = `https://www.cellartracker.com/wine.asp?iWine=${wine.iWine}`;
             }
           } catch (error) {
             console.error(`Error fetching details for wine ${wine.iWine}:`, error);
@@ -157,6 +158,7 @@ ${notesText}`;
           // Even if we don't fetch detailed data, provide CellarTracker link if we have iWine
           wineCardData.cellarTrackerUrl = `https://www.cellartracker.com/wine.asp?iWine=${wine.iWine}`;
         }
+
 
         wineCards.push(wineCardData);
       }
