@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   experimental: {
-    ppr: true,
+    // ppr: true, // Temporarily disabled to debug build issue
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if

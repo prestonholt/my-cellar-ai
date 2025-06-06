@@ -40,6 +40,26 @@ export default async function Page() {
       createdAt: new Date(),
       experimental_attachments: [],
     });
+
+    // Add the CellarTracker connection tool invocation
+    initialMessages.push({
+      id: generateUUID(),
+      role: 'assistant',
+      content: 'To get started, please connect your CellarTracker account:',
+      parts: [
+        {
+          type: 'tool-invocation',
+          toolInvocation: {
+            toolName: 'connectCellarTracker',
+            toolCallId: generateUUID(),
+            state: 'call',
+            args: {},
+          },
+        },
+      ],
+      createdAt: new Date(),
+      experimental_attachments: [],
+    });
   }
 
   const cookieStore = await cookies();
