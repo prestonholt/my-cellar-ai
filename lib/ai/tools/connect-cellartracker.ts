@@ -1,4 +1,4 @@
-import { CoreTool } from 'ai';
+import type { CoreTool } from 'ai';
 import { z } from 'zod';
 
 export const connectCellarTracker: CoreTool = {

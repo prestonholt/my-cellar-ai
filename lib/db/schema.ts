@@ -180,15 +180,50 @@ export const cellarTrackerCredentials = pgTable('CellarTrackerCredentials', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
-export type CellarTrackerCredentials = InferSelectModel<typeof cellarTrackerCredentials>;
+export type CellarTrackerCredentials = InferSelectModel<
+  typeof cellarTrackerCredentials
+>;
 
-export const cellarData = pgTable('CellarData', {
+export const wine = pgTable('Wine', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   userId: uuid('userId')
     .notNull()
     .references(() => user.id),
-  data: json('data').notNull(),
+  iWine: varchar('iWine', { length: 255 }),
+  barcode: varchar('barcode', { length: 255 }),
+  location: varchar('location', { length: 255 }),
+  bin: varchar('bin', { length: 255 }),
+  size: varchar('size', { length: 255 }),
+  currency: varchar('currency', { length: 50 }),
+  exchangeRate: varchar('exchangeRate', { length: 50 }),
+  valuation: varchar('valuation', { length: 255 }),
+  price: varchar('price', { length: 255 }),
+  nativePrice: varchar('nativePrice', { length: 255 }),
+  nativePriceCurrency: varchar('nativePriceCurrency', { length: 50 }),
+  storeName: varchar('storeName', { length: 255 }),
+  purchaseDate: varchar('purchaseDate', { length: 255 }),
+  bottleNote: text('bottleNote'),
+  vintage: varchar('vintage', { length: 50 }),
+  wine: text('wine'),
+  locale: varchar('locale', { length: 255 }),
+  country: varchar('country', { length: 255 }),
+  region: varchar('region', { length: 255 }),
+  subRegion: varchar('subRegion', { length: 255 }),
+  appellation: varchar('appellation', { length: 255 }),
+  producer: varchar('producer', { length: 255 }),
+  sortProducer: varchar('sortProducer', { length: 255 }),
+  type: varchar('type', { length: 255 }),
+  color: varchar('color', { length: 255 }),
+  category: varchar('category', { length: 255 }),
+  varietal: varchar('varietal', { length: 255 }),
+  masterVarietal: varchar('masterVarietal', { length: 255 }),
+  designation: varchar('designation', { length: 255 }),
+  vineyard: varchar('vineyard', { length: 255 }),
+  ct: varchar('ct', { length: 255 }),
+  cNotes: text('cNotes'),
+  beginConsume: varchar('beginConsume', { length: 50 }),
+  endConsume: varchar('endConsume', { length: 50 }),
   fetchedAt: timestamp('fetchedAt').notNull().defaultNow(),
 });
 
-export type CellarData = InferSelectModel<typeof cellarData>;
+export type Wine = InferSelectModel<typeof wine>;

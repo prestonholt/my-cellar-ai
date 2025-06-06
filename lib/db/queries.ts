@@ -18,17 +18,20 @@ import postgres from 'postgres';
 import {
   user,
   chat,
-  type User,
-  document,
-  type Suggestion,
-  suggestion,
+  type Chat,
   message,
   vote,
-  type DBMessage,
-  type Chat,
+  document,
+  type User,
+  type Document,
+  type Vote,
+  suggestion,
+  type Suggestion,
   stream,
   cellarTrackerCredentials,
-  cellarData,
+  wine,
+  type Wine,
+  type DBMessage,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -547,7 +550,7 @@ export async function getCellarTrackerCredentials(userId: string) {
       .from(cellarTrackerCredentials)
       .where(eq(cellarTrackerCredentials.userId, userId))
       .limit(1);
-    
+
     return credentials[0] || null;
   } catch (error) {
     throw new ChatSDKError(
@@ -567,7 +570,7 @@ export async function hasValidCellarTrackerSetup(userId: string) {
 
     // Check if we have recent valid cellar data (within last 7 days for validation)
     const recentData = await getCellarData(userId, 24 * 7); // 7 days
-    if (recentData && recentData.data && recentData.data.length > 0) {
+    if (recentData?.data && recentData.data.length > 0) {
       return true;
     }
 
@@ -580,10 +583,10 @@ export async function hasValidCellarTrackerSetup(userId: string) {
 export async function getCellarStats(userId: string) {
   try {
     const cellarData = await getCellarData(userId, 24 * 7); // 7 days
-    if (cellarData && cellarData.data) {
+    if (cellarData?.data) {
       return {
         wineCount: cellarData.data.length,
-        lastUpdated: cellarData.fetchedAt
+        lastUpdated: cellarData.fetchedAt,
       };
     }
     return null;
@@ -603,7 +606,7 @@ export async function saveCellarTrackerCredentials({
 }) {
   try {
     const existing = await getCellarTrackerCredentials(userId);
-    
+
     if (existing) {
       await db
         .update(cellarTrackerCredentials)
@@ -631,25 +634,32 @@ export async function saveCellarTrackerCredentials({
 export async function getCellarData(userId: string, hoursOld = 24) {
   try {
     const cutoffDate = new Date(Date.now() - hoursOld * 60 * 60 * 1000);
-    
-    const data = await db
+
+    // Get the latest fetch time for this user's wines
+    const latestWines = await db
       .select()
-      .from(cellarData)
-      .where(
-        and(
-          eq(cellarData.userId, userId),
-          gte(cellarData.fetchedAt, cutoffDate)
-        )
-      )
-      .orderBy(desc(cellarData.fetchedAt))
+      .from(wine)
+      .where(and(eq(wine.userId, userId), gte(wine.fetchedAt, cutoffDate)))
+      .orderBy(desc(wine.fetchedAt))
       .limit(1);
-    
-    return data[0] || null;
+
+    if (latestWines.length === 0) {
+      return null;
+    }
+
+    // Get all wines from the latest fetch
+    const fetchedAt = latestWines[0].fetchedAt;
+    const allWines = await db
+      .select()
+      .from(wine)
+      .where(and(eq(wine.userId, userId), eq(wine.fetchedAt, fetchedAt)));
+
+    return {
+      data: allWines,
+      fetchedAt: fetchedAt,
+    };
   } catch (error) {
-    throw new ChatSDKError(
-      'bad_request:database',
-      'Failed to get cellar data',
-    );
+    throw new ChatSDKError('bad_request:database', 'Failed to get cellar data');
   }
 }
 
@@ -658,14 +668,56 @@ export async function saveCellarData({
   data,
 }: {
   userId: string;
-  data: any;
+  data: any[];
 }) {
   try {
-    await db.insert(cellarData).values({
+    // Delete all existing wines for this user
+    await db.delete(wine).where(eq(wine.userId, userId));
+
+    // Insert new wines with the same fetchedAt timestamp
+    const fetchedAt = new Date();
+    const winesToInsert = data.map((wineData) => ({
       userId,
-      data,
-      fetchedAt: new Date(),
-    });
+      fetchedAt,
+      iWine: wineData.iWine || null,
+      barcode: wineData.Barcode || null,
+      location: wineData.Location || null,
+      bin: wineData.Bin || null,
+      size: wineData.Size || null,
+      currency: wineData.Currency || null,
+      exchangeRate: wineData.ExchangeRate || null,
+      valuation: wineData.Valuation || null,
+      price: wineData.Price || null,
+      nativePrice: wineData.NativePrice || null,
+      nativePriceCurrency: wineData.NativePriceCurrency || null,
+      storeName: wineData.StoreName || null,
+      purchaseDate: wineData.PurchaseDate || null,
+      bottleNote: wineData.BottleNote || null,
+      vintage: wineData.Vintage || null,
+      wine: wineData.Wine || null,
+      locale: wineData.Locale || null,
+      country: wineData.Country || null,
+      region: wineData.Region || null,
+      subRegion: wineData.SubRegion || null,
+      appellation: wineData.Appellation || null,
+      producer: wineData.Producer || null,
+      sortProducer: wineData.SortProducer || null,
+      type: wineData.Type || null,
+      color: wineData.Color || null,
+      category: wineData.Category || null,
+      varietal: wineData.Varietal || null,
+      masterVarietal: wineData.MasterVarietal || null,
+      designation: wineData.Designation || null,
+      vineyard: wineData.Vineyard || null,
+      ct: wineData.CT || null,
+      cNotes: wineData.CNotes || null,
+      beginConsume: wineData.BeginConsume || null,
+      endConsume: wineData.EndConsume || null,
+    }));
+
+    if (winesToInsert.length > 0) {
+      await db.insert(wine).values(winesToInsert);
+    }
   } catch (error) {
     throw new ChatSDKError(
       'bad_request:database',
