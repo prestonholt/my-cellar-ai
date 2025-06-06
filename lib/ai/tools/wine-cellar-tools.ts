@@ -5,22 +5,50 @@ import { and, eq, gte, lte, ilike, or, isNull, count } from 'drizzle-orm';
 // Schema for filterWines tool
 export const filterWinesSchema = z.object({
   userId: z.string().describe('The user ID to filter wines for'),
-  region: z.string().optional().describe('Filter by wine region (e.g., "Bordeaux", "Napa Valley")'),
+  region: z
+    .string()
+    .optional()
+    .describe('Filter by wine region (e.g., "Bordeaux", "Napa Valley")'),
   subRegion: z.string().optional().describe('Filter by sub-region'),
   country: z.string().optional().describe('Filter by country'),
-  varietal: z.string().optional().describe('Filter by grape varietal (e.g., "Cabernet Sauvignon", "Pinot Noir")'),
+  varietal: z
+    .string()
+    .optional()
+    .describe(
+      'Filter by grape varietal (e.g., "Cabernet Sauvignon", "Pinot Noir")',
+    ),
   producer: z.string().optional().describe('Filter by producer/winery name'),
-  vintageMin: z.string().optional().describe('Minimum vintage year (e.g., "2010")'),
-  vintageMax: z.string().optional().describe('Maximum vintage year (e.g., "2020")'),
+  vintageMin: z
+    .string()
+    .optional()
+    .describe('Minimum vintage year (e.g., "2010")'),
+  vintageMax: z
+    .string()
+    .optional()
+    .describe('Maximum vintage year (e.g., "2020")'),
   priceMin: z.string().optional().describe('Minimum price'),
   priceMax: z.string().optional().describe('Maximum price'),
-  type: z.string().optional().describe('Wine type (e.g., "Red", "White", "Sparkling")'),
+  type: z
+    .string()
+    .optional()
+    .describe('Wine type (e.g., "Red", "White", "Sparkling")'),
   color: z.string().optional().describe('Wine color'),
-  readyToDrink: z.boolean().optional().describe('Filter wines within their drinking window'),
+  readyToDrink: z
+    .boolean()
+    .optional()
+    .describe('Filter wines within their drinking window'),
   location: z.string().optional().describe('Storage location'),
   bin: z.string().optional().describe('Storage bin'),
-  limit: z.number().optional().default(10).describe('Maximum number of results to return'),
-  countOnly: z.boolean().optional().default(false).describe('Return only the count, not wine details'),
+  limit: z
+    .number()
+    .optional()
+    .default(10)
+    .describe('Maximum number of results to return'),
+  countOnly: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe('Return only the count, not wine details'),
 });
 
 export type FilterWinesInput = z.infer<typeof filterWinesSchema>;
@@ -40,7 +68,7 @@ export async function filterWines(input: FilterWinesInput) {
   if (input.varietal) {
     const varietalCondition = or(
       ilike(wine.varietal, `%${input.varietal}%`),
-      ilike(wine.masterVarietal, `%${input.varietal}%`)
+      ilike(wine.masterVarietal, `%${input.varietal}%`),
     );
     if (varietalCondition) {
       conditions.push(varietalCondition);
@@ -77,14 +105,8 @@ export async function filterWines(input: FilterWinesInput) {
   if (input.readyToDrink) {
     const currentYear = new Date().getFullYear().toString();
     const drinkingWindowCondition = and(
-      or(
-        lte(wine.beginConsume, currentYear),
-        isNull(wine.beginConsume)
-      ),
-      or(
-        gte(wine.endConsume, currentYear),
-        isNull(wine.endConsume)
-      )
+      or(lte(wine.beginConsume, currentYear), isNull(wine.beginConsume)),
+      or(gte(wine.endConsume, currentYear), isNull(wine.endConsume)),
     );
     if (drinkingWindowCondition) {
       conditions.push(drinkingWindowCondition);
@@ -96,7 +118,7 @@ export async function filterWines(input: FilterWinesInput) {
     .select({ count: count() })
     .from(wine)
     .where(and(...conditions));
-  
+
   const totalCount = Number(totalCountResult[0]?.count || 0);
 
   if (input.countOnly) {
@@ -115,12 +137,12 @@ export async function filterWines(input: FilterWinesInput) {
 
   // Shuffle results to avoid always getting the same wines
   const shuffledResults = results
-    .map(w => ({ ...w, randomScore: Math.random() }))
+    .map((w) => ({ ...w, randomScore: Math.random() }))
     .sort((a, b) => b.randomScore - a.randomScore)
     .slice(0, input.limit);
 
   // Return summarized wine info instead of full details
-  const winesSummary = shuffledResults.map(w => ({
+  const winesSummary = shuffledResults.map((w) => ({
     id: w.id,
     iWine: w.iWine,
     wine: w.wine,
@@ -134,8 +156,12 @@ export async function filterWines(input: FilterWinesInput) {
     valuation: w.valuation,
     readyToDrink: (() => {
       const currentYear = new Date().getFullYear().toString();
-      const beginOk = !w.beginConsume || Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
-      const endOk = !w.endConsume || Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
+      const beginOk =
+        !w.beginConsume ||
+        Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
+      const endOk =
+        !w.endConsume ||
+        Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
       return beginOk && endOk;
     })(),
   }));
@@ -164,63 +190,83 @@ export async function summarizeInventory(input: SummarizeInventoryInput) {
 
   // Calculate aggregate statistics
   const totalBottles = wines.length;
-  
+
   // Count by region
-  const regionCounts = wines.reduce((acc, w) => {
-    const region = w.region || 'Unknown';
-    acc[region] = (acc[region] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const regionCounts = wines.reduce(
+    (acc, w) => {
+      const region = w.region || 'Unknown';
+      acc[region] = (acc[region] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Count by varietal
-  const varietalCounts = wines.reduce((acc, w) => {
-    const varietal = w.masterVarietal || w.varietal || 'Unknown';
-    acc[varietal] = (acc[varietal] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const varietalCounts = wines.reduce(
+    (acc, w) => {
+      const varietal = w.masterVarietal || w.varietal || 'Unknown';
+      acc[varietal] = (acc[varietal] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Count by vintage decade
-  const vintageCounts = wines.reduce((acc, w) => {
-    if (w.vintage) {
-      const decade = Math.floor(Number.parseInt(w.vintage) / 10) * 10;
-      const decadeLabel = `${decade}s`;
-      acc[decadeLabel] = (acc[decadeLabel] || 0) + 1;
-    }
-    return acc;
-  }, {} as Record<string, number>);
+  const vintageCounts = wines.reduce(
+    (acc, w) => {
+      if (w.vintage) {
+        const decade = Math.floor(Number.parseInt(w.vintage) / 10) * 10;
+        const decadeLabel = `${decade}s`;
+        acc[decadeLabel] = (acc[decadeLabel] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Count by type
-  const typeCounts = wines.reduce((acc, w) => {
-    const type = w.type || 'Unknown';
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const typeCounts = wines.reduce(
+    (acc, w) => {
+      const type = w.type || 'Unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   // Calculate price statistics
   const pricesWithValues = wines
-    .filter(w => w.price && Number.parseFloat(w.price) > 0)
-    .map(w => Number.parseFloat(w.price || '0'));
-  
-  const avgPrice = pricesWithValues.length > 0
-    ? pricesWithValues.reduce((a, b) => a + b, 0) / pricesWithValues.length
-    : 0;
+    .filter((w) => w.price && Number.parseFloat(w.price) > 0)
+    .map((w) => Number.parseFloat(w.price || '0'));
+
+  const avgPrice =
+    pricesWithValues.length > 0
+      ? pricesWithValues.reduce((a, b) => a + b, 0) / pricesWithValues.length
+      : 0;
 
   const totalValue = pricesWithValues.reduce((a, b) => a + b, 0);
 
   // Find wines ready to drink
   const currentYear = new Date().getFullYear().toString();
-  const readyToDrink = wines.filter(w => {
-    const beginOk = !w.beginConsume || Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
-    const endOk = !w.endConsume || Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
+  const readyToDrink = wines.filter((w) => {
+    const beginOk =
+      !w.beginConsume ||
+      Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
+    const endOk =
+      !w.endConsume ||
+      Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
     return beginOk && endOk;
   }).length;
 
   // Top producers by bottle count
-  const producerCounts = wines.reduce((acc, w) => {
-    const producer = w.producer || 'Unknown';
-    acc[producer] = (acc[producer] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const producerCounts = wines.reduce(
+    (acc, w) => {
+      const producer = w.producer || 'Unknown';
+      acc[producer] = (acc[producer] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const topProducers = Object.entries(producerCounts)
     .sort(([, a], [, b]) => b - a)
@@ -244,19 +290,24 @@ export async function summarizeInventory(input: SummarizeInventoryInput) {
 // Schema for analyzeValue tool
 export const analyzeValueSchema = z.object({
   userId: z.string().describe('The user ID to analyze wine values for'),
-  wineIds: z.array(z.string()).optional().describe('Specific wine IDs to analyze (optional)'),
-  limit: z.number().optional().default(10).describe('Number of top value wines to return'),
+  wineIds: z
+    .array(z.string())
+    .optional()
+    .describe('Specific wine IDs to analyze (optional)'),
+  limit: z
+    .number()
+    .optional()
+    .default(10)
+    .describe('Number of top value wines to return'),
 });
 
 export type AnalyzeValueInput = z.infer<typeof analyzeValueSchema>;
 
 export async function analyzeValue(input: AnalyzeValueInput) {
   const conditions = [eq(wine.userId, input.userId)];
-  
+
   if (input.wineIds && input.wineIds.length > 0) {
-    conditions.push(
-      or(...input.wineIds.map(id => eq(wine.id, id)))!
-    );
+    conditions.push(or(...input.wineIds.map((id) => eq(wine.id, id)))!);
   }
 
   const wines = await db
@@ -266,13 +317,13 @@ export async function analyzeValue(input: AnalyzeValueInput) {
 
   // Calculate ROI for each wine
   const wineAnalysis = wines
-    .filter(w => w.price && w.valuation && Number.parseFloat(w.price) > 0)
-    .map(w => {
+    .filter((w) => w.price && w.valuation && Number.parseFloat(w.price) > 0)
+    .map((w) => {
       const pricePaid = Number.parseFloat(w.price || '0');
       const currentValue = Number.parseFloat(w.valuation || '0');
       const gain = currentValue - pricePaid;
-      const roi = ((gain / pricePaid) * 100);
-      
+      const roi = (gain / pricePaid) * 100;
+
       return {
         id: w.id,
         wine: w.wine,
@@ -297,7 +348,7 @@ export async function analyzeValue(input: AnalyzeValueInput) {
   const overallRoi = totalPaid > 0 ? (totalGain / totalPaid) * 100 : 0;
 
   // Simplify the return format
-  const topGainersSimplified = topGainers.map(w => ({
+  const topGainersSimplified = topGainers.map((w) => ({
     wine: w.wine,
     vintage: w.vintage,
     producer: w.producer,
@@ -305,7 +356,7 @@ export async function analyzeValue(input: AnalyzeValueInput) {
     gain: `$${w.gain.toFixed(2)}`,
   }));
 
-  const topLosersSimplified = topLosers.map(w => ({
+  const topLosersSimplified = topLosers.map((w) => ({
     wine: w.wine,
     vintage: w.vintage,
     producer: w.producer,
@@ -328,20 +379,28 @@ export const getAvailableWineOptionsSchema = z.object({
   userId: z.string().describe('The user ID to get wine options for'),
 });
 
-export type GetAvailableWineOptionsInput = z.infer<typeof getAvailableWineOptionsSchema>;
+export type GetAvailableWineOptionsInput = z.infer<
+  typeof getAvailableWineOptionsSchema
+>;
 
-export async function getAvailableWineOptions(input: GetAvailableWineOptionsInput) {
+export async function getAvailableWineOptions(
+  input: GetAvailableWineOptionsInput,
+) {
   const wines = await db
     .select()
     .from(wine)
     .where(eq(wine.userId, input.userId));
 
   // Get unique varieties and regions
-  const varietals = [...new Set(wines.map(w => w.masterVarietal || w.varietal).filter(Boolean))];
-  const regions = [...new Set(wines.map(w => w.region).filter(Boolean))];
-  const countries = [...new Set(wines.map(w => w.country).filter(Boolean))];
-  const types = [...new Set(wines.map(w => w.type).filter(Boolean))];
-  
+  const varietals = [
+    ...new Set(
+      wines.map((w) => w.masterVarietal || w.varietal).filter(Boolean),
+    ),
+  ];
+  const regions = [...new Set(wines.map((w) => w.region).filter(Boolean))];
+  const countries = [...new Set(wines.map((w) => w.country).filter(Boolean))];
+  const types = [...new Set(wines.map((w) => w.type).filter(Boolean))];
+
   return {
     varietals: varietals.sort(),
     regions: regions.sort(),
@@ -356,11 +415,21 @@ export async function getAvailableWineOptions(input: GetAvailableWineOptionsInpu
 export const suggestFoodPairingSchema = z.object({
   userId: z.string().describe('The user ID to suggest wines for'),
   dish: z.string().describe('The dish or food to pair with wine'),
-  wineType: z.string().optional().describe('Preferred wine type (Red, White, Sparkling, etc.)'),
+  wineType: z
+    .string()
+    .optional()
+    .describe('Preferred wine type (Red, White, Sparkling, etc.)'),
   varietal: z.string().optional().describe('Preferred varietal'),
   region: z.string().optional().describe('Preferred region'),
-  readyToDrink: z.boolean().optional().describe('Only show wines ready to drink now'),
-  limit: z.number().optional().default(10).describe('Maximum number of wine suggestions'),
+  readyToDrink: z
+    .boolean()
+    .optional()
+    .describe('Only show wines ready to drink now'),
+  limit: z
+    .number()
+    .optional()
+    .default(10)
+    .describe('Maximum number of wine suggestions'),
 });
 
 export type SuggestFoodPairingInput = z.infer<typeof suggestFoodPairingSchema>;
@@ -368,36 +437,30 @@ export type SuggestFoodPairingInput = z.infer<typeof suggestFoodPairingSchema>;
 export async function suggestFoodPairing(input: SuggestFoodPairingInput) {
   // Build query conditions based on user preferences
   const conditions = [eq(wine.userId, input.userId)];
-  
+
   if (input.wineType) {
     conditions.push(ilike(wine.type, `%${input.wineType}%`));
   }
-  
+
   if (input.varietal) {
     const varietalCondition = or(
       ilike(wine.varietal, `%${input.varietal}%`),
-      ilike(wine.masterVarietal, `%${input.varietal}%`)
+      ilike(wine.masterVarietal, `%${input.varietal}%`),
     );
     if (varietalCondition) {
       conditions.push(varietalCondition);
     }
   }
-  
+
   if (input.region) {
     conditions.push(ilike(wine.region, `%${input.region}%`));
   }
-  
+
   if (input.readyToDrink) {
     const currentYear = new Date().getFullYear().toString();
     const drinkingWindowCondition = and(
-      or(
-        lte(wine.beginConsume, currentYear),
-        isNull(wine.beginConsume)
-      ),
-      or(
-        gte(wine.endConsume, currentYear),
-        isNull(wine.endConsume)
-      )
+      or(lte(wine.beginConsume, currentYear), isNull(wine.beginConsume)),
+      or(gte(wine.endConsume, currentYear), isNull(wine.endConsume)),
     );
     if (drinkingWindowCondition) {
       conditions.push(drinkingWindowCondition);
@@ -412,7 +475,7 @@ export async function suggestFoodPairing(input: SuggestFoodPairingInput) {
     .limit(input.limit * 3); // Get more wines to choose from
 
   // Return wine options for the LLM to analyze
-  let wineOptions = wines.map(w => ({
+  const wineOptionsWithRandom = wines.map((w) => ({
     id: w.id,
     iWine: w.iWine,
     wine: w.wine,
@@ -429,8 +492,12 @@ export async function suggestFoodPairing(input: SuggestFoodPairingInput) {
     score: w.ct,
     readyToDrink: (() => {
       const currentYear = new Date().getFullYear().toString();
-      const beginOk = !w.beginConsume || Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
-      const endOk = !w.endConsume || Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
+      const beginOk =
+        !w.beginConsume ||
+        Number.parseInt(w.beginConsume) <= Number.parseInt(currentYear);
+      const endOk =
+        !w.endConsume ||
+        Number.parseInt(w.endConsume) >= Number.parseInt(currentYear);
       return beginOk && endOk;
     })(),
     // Add a random score for shuffling
@@ -438,7 +505,7 @@ export async function suggestFoodPairing(input: SuggestFoodPairingInput) {
   }));
 
   // Shuffle the results to avoid always getting the same wines
-  wineOptions = wineOptions
+  const wineOptions = wineOptionsWithRandom
     .sort((a, b) => b.randomScore - a.randomScore)
     .slice(0, input.limit)
     .map(({ randomScore, ...wine }) => wine); // Remove the random score from final result
@@ -475,58 +542,76 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
   }
 
   const w = wineRecord[0];
-  
+
   try {
     // First, get the bottle image from the main wine page
     const wineUrl = `https://www.cellartracker.com/wine.asp?iWine=${input.iWine}`;
     const wineResponse = await fetch(wineUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
     });
-    
+
     let bottleImageUrl = null;
     if (wineResponse.ok) {
       const wineHtml = await wineResponse.text();
       // Extract bottle image URL using multiple strategies
       // Strategy 1: Look for the wine_photo div specifically
-      let winePhotoMatch = wineHtml.match(/<div[^>]*id=["']wine_photo["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+      let winePhotoMatch = wineHtml.match(
+        /<div[^>]*id=["']wine_photo["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>/i,
+      );
       if (winePhotoMatch) {
         const imgSrc = winePhotoMatch[1];
-        bottleImageUrl = imgSrc.startsWith('http') ? imgSrc : `https://www.cellartracker.com${imgSrc}`;
+        bottleImageUrl = imgSrc.startsWith('http')
+          ? imgSrc
+          : `https://www.cellartracker.com${imgSrc}`;
       }
-      
+
       // Strategy 2: Look for wine_images in any img src
       if (!bottleImageUrl) {
-        const wineImagesMatch = wineHtml.match(/<img[^>]+src=["']([^"']*wine_images[^"']*)["'][^>]*>/i);
+        const wineImagesMatch = wineHtml.match(
+          /<img[^>]+src=["']([^"']*wine_images[^"']*)["'][^>]*>/i,
+        );
         if (wineImagesMatch) {
           const imgSrc = wineImagesMatch[1];
-          bottleImageUrl = imgSrc.startsWith('http') ? imgSrc : `https://www.cellartracker.com${imgSrc}`;
+          bottleImageUrl = imgSrc.startsWith('http')
+            ? imgSrc
+            : `https://www.cellartracker.com${imgSrc}`;
         }
       }
-      
+
       // Strategy 3: Look for static.cellartracker.com images
       if (!bottleImageUrl) {
-        const staticMatch = wineHtml.match(/<img[^>]+src=["']([^"']*static\.cellartracker\.com[^"']*)["'][^>]*>/i);
+        const staticMatch = wineHtml.match(
+          /<img[^>]+src=["']([^"']*static\.cellartracker\.com[^"']*)["'][^>]*>/i,
+        );
         if (staticMatch) {
           bottleImageUrl = staticMatch[1];
         }
       }
-      
+
       // Strategy 4: More general approach - look for any img in wine_photo container
       if (!bottleImageUrl) {
         // Try to find wine_photo div and extract any img src from it
-        const winePhotoDiv = wineHtml.match(/<div[^>]*id=["']wine_photo["'][^>]*>([\s\S]*?)<\/div>/i);
+        const winePhotoDiv = wineHtml.match(
+          /<div[^>]*id=["']wine_photo["'][^>]*>([\s\S]*?)<\/div>/i,
+        );
         if (winePhotoDiv) {
           const imgInDiv = winePhotoDiv[1].match(/src=["']([^"']+)["']/i);
           if (imgInDiv) {
             const imgSrc = imgInDiv[1];
-            bottleImageUrl = imgSrc.startsWith('http') ? imgSrc : `https://www.cellartracker.com${imgSrc}`;
+            bottleImageUrl = imgSrc.startsWith('http')
+              ? imgSrc
+              : `https://www.cellartracker.com${imgSrc}`;
           }
         }
       }
-      
-      console.log(`Image extraction for iWine ${input.iWine}:`, bottleImageUrl || 'No image found');
+
+      console.log(
+        `Image extraction for iWine ${input.iWine}:`,
+        bottleImageUrl || 'No image found',
+      );
     }
 
     // Now get the tasting notes from the notes page
@@ -536,17 +621,22 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
       notesResponse = await fetch(notesUrl, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+          Accept:
+            'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Referer': `https://www.cellartracker.com/wine.asp?iWine=${input.iWine}`,
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1'
-        }
+          Referer: `https://www.cellartracker.com/wine.asp?iWine=${input.iWine}`,
+          Connection: 'keep-alive',
+          'Upgrade-Insecure-Requests': '1',
+        },
       });
     } catch (fetchError) {
-      console.error(`Network error fetching tasting notes for iWine ${input.iWine}:`, fetchError);
+      console.error(
+        `Network error fetching tasting notes for iWine ${input.iWine}:`,
+        fetchError,
+      );
       // Return data without notes if fetch fails - use database record
       return {
         success: true,
@@ -558,14 +648,16 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
           region: w.region || 'Unknown Region',
           varietals: w.masterVarietal || w.varietal || 'Unknown Varietal',
           bottleImageUrl: null,
-          tastingNotes: []
+          tastingNotes: [],
         },
-        message: `Found wine details for ${w.wine || 'wine'} but couldn't fetch tasting notes due to network error.`
+        message: `Found wine details for ${w.wine || 'wine'} but couldn't fetch tasting notes due to network error.`,
       };
     }
-    
+
     if (!notesResponse.ok) {
-      console.error(`HTTP ${notesResponse.status} when fetching tasting notes for iWine ${input.iWine}`);
+      console.error(
+        `HTTP ${notesResponse.status} when fetching tasting notes for iWine ${input.iWine}`,
+      );
       // Return data without notes if request fails - use database record
       return {
         success: true,
@@ -577,14 +669,14 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
           region: w.region || 'Unknown Region',
           varietals: w.masterVarietal || w.varietal || 'Unknown Varietal',
           bottleImageUrl: null,
-          tastingNotes: []
+          tastingNotes: [],
         },
-        message: `Found wine details for ${w.wine || 'wine'} but tasting notes are not available (HTTP ${notesResponse.status}).`
+        message: `Found wine details for ${w.wine || 'wine'} but tasting notes are not available (HTTP ${notesResponse.status}).`,
       };
     }
-    
+
     const notesHtml = await notesResponse.text();
-    
+
     // Parse tasting notes - CellarTracker uses structured divs with itemprop
     const tastingNotes: Array<{
       date?: string;
@@ -592,41 +684,50 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
       note?: string;
       reviewer?: string;
     }> = [];
-    
+
     // Method 1: Look for notes with itemprop="reviewBody"
-    const reviewBodyMatches = notesHtml.match(/<p[^>]*itemprop=["']reviewBody["'][^>]*>(.*?)<\/p>/gis);
+    const reviewBodyMatches = notesHtml.match(
+      /<p[^>]*itemprop=["']reviewBody["'][^>]*>(.*?)<\/p>/gis,
+    );
     if (reviewBodyMatches) {
       console.log(`Found ${reviewBodyMatches.length} review body matches`);
-      
+
       for (const reviewMatch of reviewBodyMatches) {
         const noteText = reviewMatch.replace(/<[^>]*>/g, '').trim();
         if (noteText.length > 2) {
           // Try to find associated reviewer and other details by looking backwards in HTML
           const reviewIndex = notesHtml.indexOf(reviewMatch);
-          const contextBefore = notesHtml.substring(Math.max(0, reviewIndex - 2000), reviewIndex);
-          
+          const contextBefore = notesHtml.substring(
+            Math.max(0, reviewIndex - 2000),
+            reviewIndex,
+          );
+
           // Look for reviewer name (usually in a span with itemprop="author")
           let reviewer = '';
-          const authorMatch = contextBefore.match(/<span[^>]*itemprop=["']author["'][^>]*>([^<]+)<\/span>/i);
+          const authorMatch = contextBefore.match(
+            /<span[^>]*itemprop=["']author["'][^>]*>([^<]+)<\/span>/i,
+          );
           if (authorMatch) {
             reviewer = authorMatch[1].trim();
           }
-          
+
           // Look for score in the context
           let score = '';
-          const scoreMatches = contextBefore.match(/(\d{1,3}(?:\.\d{1,2})?)\s*(?:pts?|points?|\/100)?/gi);
+          const scoreMatches = contextBefore.match(
+            /(\d{1,3}(?:\.\d{1,2})?)\s*(?:pts?|points?|\/100)?/gi,
+          );
           if (scoreMatches && scoreMatches.length > 0) {
             // Take the last score found (most likely to be the right one)
             score = scoreMatches[scoreMatches.length - 1];
           }
-          
+
           // Look for date
           let date = '';
           const dateMatches = contextBefore.match(/(\d{1,2}\/\d{1,2}\/\d{4})/g);
           if (dateMatches && dateMatches.length > 0) {
             date = dateMatches[dateMatches.length - 1];
           }
-          
+
           tastingNotes.push({
             date: date || undefined,
             score: score || undefined,
@@ -636,17 +737,22 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
         }
       }
     }
-    
+
     // Method 2: Fallback - look for div structures (backup method)
     if (tastingNotes.length === 0) {
       console.log('No structured notes found, trying alternative parsing...');
-      
+
       // Look for any text that might be tasting notes
-      const possibleNotes = notesHtml.match(/<p[^>]*class=["'][^"']*break_word[^"']*["'][^>]*>(.*?)<\/p>/gis);
+      const possibleNotes = notesHtml.match(
+        /<p[^>]*class=["'][^"']*break_word[^"']*["'][^>]*>(.*?)<\/p>/gis,
+      );
       if (possibleNotes) {
         for (const noteMatch of possibleNotes) {
           const noteText = noteMatch.replace(/<[^>]*>/g, '').trim();
-          if (noteText.length > 10 && !noteText.includes('Do you find this review helpful')) {
+          if (
+            noteText.length > 10 &&
+            !noteText.includes('Do you find this review helpful')
+          ) {
             tastingNotes.push({
               note: noteText,
             });
@@ -654,24 +760,29 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
         }
       }
     }
-    
+
     // Extract professional reviews from the notes page
     const professionalReviews: string[] = [];
-    const reviewMatches = notesHtml.match(/(?:Wine Spectator|Robert Parker|Jancis Robinson|Wine Advocate|Decanter|James Suckling)[^<]*(?:<[^>]*>[^<]*)*?(\d{1,3}(?:\+|\-)?(?:\/100)?)/gi);
+    const reviewMatches = notesHtml.match(
+      /(?:Wine Spectator|Robert Parker|Jancis Robinson|Wine Advocate|Decanter|James Suckling)[^<]*(?:<[^>]*>[^<]*)*?(\d{1,3}(?:\+|\-)?(?:\/100)?)/gi,
+    );
     if (reviewMatches) {
-      professionalReviews.push(...reviewMatches.map(review => review.trim()));
+      professionalReviews.push(...reviewMatches.map((review) => review.trim()));
     }
-    
+
     // Extract community score from the main wine page or notes page
     let communityScore = w.ct;
-    const scoreMatch = notesHtml.match(/Community[^<]*?(\d{1,2}\.\d{1,2})/i) || 
-                     notesHtml.match(/Average[^<]*?(\d{1,2}\.\d{1,2})/i);
+    const scoreMatch =
+      notesHtml.match(/Community[^<]*?(\d{1,2}\.\d{1,2})/i) ||
+      notesHtml.match(/Average[^<]*?(\d{1,2}\.\d{1,2})/i);
     if (scoreMatch) {
       communityScore = scoreMatch[1];
     }
-    
-    console.log(`Successfully extracted ${tastingNotes.length} tasting notes for iWine ${input.iWine}`);
-    
+
+    console.log(
+      `Successfully extracted ${tastingNotes.length} tasting notes for iWine ${input.iWine}`,
+    );
+
     return {
       success: true,
       wineData: {
@@ -690,10 +801,9 @@ export async function getTastingNotes(input: GetTastingNotesInput) {
       },
       message: `Found ${tastingNotes.length} tasting notes for ${w.wine || 'wine'} from CellarTracker.`,
     };
-    
   } catch (error) {
     console.error('Error scraping CellarTracker:', error);
-    
+
     // Fallback to database data
     return {
       iWine: input.iWine,
@@ -723,7 +833,9 @@ export const retrieveNotesContextSchema = z.object({
   limit: z.number().optional().default(5).describe('Maximum number of results'),
 });
 
-export type RetrieveNotesContextInput = z.infer<typeof retrieveNotesContextSchema>;
+export type RetrieveNotesContextInput = z.infer<
+  typeof retrieveNotesContextSchema
+>;
 
 export async function retrieveNotesContext(input: RetrieveNotesContextInput) {
   // This is a placeholder for a future RAG implementation
@@ -732,7 +844,7 @@ export async function retrieveNotesContext(input: RetrieveNotesContextInput) {
   // 2. Embed the query
   // 3. Perform semantic search
   // 4. Return the most relevant note excerpts
-  
+
   // For now, we'll do a simple text search
   const wines = await db
     .select()
@@ -742,15 +854,15 @@ export async function retrieveNotesContext(input: RetrieveNotesContextInput) {
         eq(wine.userId, input.userId),
         or(
           ilike(wine.cNotes, `%${input.query}%`),
-          ilike(wine.bottleNote, `%${input.query}%`)
-        )
-      )
+          ilike(wine.bottleNote, `%${input.query}%`),
+        ),
+      ),
     )
     .limit(input.limit);
 
   return {
     query: input.query,
-    results: wines.map(w => ({
+    results: wines.map((w) => ({
       id: w.id,
       wine: w.wine,
       vintage: w.vintage,
@@ -758,6 +870,7 @@ export async function retrieveNotesContext(input: RetrieveNotesContextInput) {
       relevantNotes: w.cNotes || w.bottleNote || '',
       score: w.ct,
     })),
-    message: 'Note: This is using basic text search. A vector-based semantic search would provide better results.',
+    message:
+      'Note: This is using basic text search. A vector-based semantic search would provide better results.',
   };
 }

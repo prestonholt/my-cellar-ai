@@ -10,27 +10,44 @@ interface DynamicWineAnalyticsProps {
 
 // Schema for the AI to define what data to query and how to visualize it
 const analyticsConfigSchema = z.object({
-  sqlQuery: z.string().describe('Complete PostgreSQL query to execute against the wine table'),
+  sqlQuery: z
+    .string()
+    .describe('Complete PostgreSQL query to execute against the wine table'),
   chartConfig: z.object({
-    type: z.enum(['bar', 'pie', 'line', 'table']).describe('Type of chart that best visualizes this data'),
+    type: z
+      .enum(['bar', 'pie', 'line', 'table'])
+      .describe('Type of chart that best visualizes this data'),
     title: z.string().describe('Clear, descriptive title for the chart'),
-    description: z.string().describe('Brief explanation of what this chart shows'),
+    description: z
+      .string()
+      .describe('Brief explanation of what this chart shows'),
     xField: z.string().describe('Field name to use for x-axis or categories'),
     yField: z.string().describe('Field name to use for y-axis or values'),
-    colorField: z.string().optional().describe('Field to use for grouping/coloring (for multi-series charts)'),
+    colorField: z
+      .string()
+      .optional()
+      .describe('Field to use for grouping/coloring (for multi-series charts)'),
   }),
-  insights: z.string().describe('Key insights and takeaways from this analysis'),
+  insights: z
+    .string()
+    .describe('Key insights and takeaways from this analysis'),
 });
 
 export const dynamicWineAnalytics = ({ session }: DynamicWineAnalyticsProps) =>
   tool({
-    description: 'Perform completely dynamic wine collection analysis based on natural language queries. The AI determines what SQL to run and how best to visualize the results.',
+    description:
+      'Perform completely dynamic wine collection analysis based on natural language queries. The AI determines what SQL to run and how best to visualize the results.',
     parameters: z.object({
-      query: z.string().describe('Natural language query about wine collection analysis'),
+      query: z
+        .string()
+        .describe('Natural language query about wine collection analysis'),
     }),
     execute: async ({ query }) => {
       if (!session?.user?.id) {
-        return { error: 'User not authenticated. Please connect to CellarTracker first.' };
+        return {
+          error:
+            'User not authenticated. Please connect to CellarTracker first.',
+        };
       }
 
       try {
@@ -116,12 +133,14 @@ Generate a complete analysis plan:`;
           try {
             console.log(`SQL attempt ${attempts + 1}:`, finalQuery);
             const results = await db.execute(finalQuery);
-            data = Array.isArray(results) ? results : results.rows || [];
+            data = Array.isArray(results)
+              ? results
+              : (results as any).rows || [];
             break; // Success, exit the retry loop
           } catch (error: any) {
             attempts++;
             console.error(`SQL attempt ${attempts} failed:`, error.message);
-            
+
             if (attempts >= maxAttempts) {
               throw error; // Give up after max attempts
             }
@@ -163,11 +182,15 @@ Return ONLY the corrected SQL query, no explanation:`;
             [config.chartConfig.xField]: row[config.chartConfig.xField],
             [config.chartConfig.yField]: row[config.chartConfig.yField],
           };
-          
-          if (config.chartConfig.colorField && row[config.chartConfig.colorField]) {
-            item[config.chartConfig.colorField] = row[config.chartConfig.colorField];
+
+          if (
+            config.chartConfig.colorField &&
+            row[config.chartConfig.colorField]
+          ) {
+            item[config.chartConfig.colorField] =
+              row[config.chartConfig.colorField];
           }
-          
+
           return item;
         });
 
@@ -209,12 +232,12 @@ Provide 2-3 sentences of actionable insights about what this data reveals about 
           insights: enhancedInsights || config.insights,
           summary: `Analyzed ${data.length} data points for: ${config.chartConfig.title}`,
         };
-
       } catch (error) {
         console.error('Error in dynamic wine analytics:', error);
-        return { 
-          error: 'Failed to analyze wine data. Please try rephrasing your query.',
-          details: error instanceof Error ? error.message : 'Unknown error'
+        return {
+          error:
+            'Failed to analyze wine data. Please try rephrasing your query.',
+          details: error instanceof Error ? error.message : 'Unknown error',
         };
       }
     },

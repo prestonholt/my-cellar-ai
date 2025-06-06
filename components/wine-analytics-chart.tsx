@@ -66,29 +66,37 @@ export function WineAnalyticsChart({
   insights,
 }: WineAnalyticsChartProps) {
   // Handle both old and new data formats
-  const actualChartData = Array.isArray(chartData) ? chartData : chartData?.data || [];
-  const actualChartType = chartType || chartData?.type || 'table';
-  
+  const actualChartData = Array.isArray(chartData)
+    ? chartData
+    : chartData?.data || [];
+  const actualChartType =
+    chartType ||
+    (!Array.isArray(chartData) ? chartData?.type : undefined) ||
+    'table';
+
   const renderChart = () => {
     switch (actualChartType) {
       case 'bar':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={actualChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <BarChart
+              data={actualChartData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey={xField || "label"} 
+              <XAxis
+                dataKey={xField || 'label'}
                 angle={-45}
                 textAnchor="end"
                 height={80}
                 fontSize={12}
               />
               <YAxis />
-              <Tooltip 
+              <Tooltip
                 formatter={(value, name) => [value, yField || 'Count']}
                 labelFormatter={(label) => `${label}`}
               />
-              <Bar dataKey={yField || "value"} fill="hsl(var(--primary))" />
+              <Bar dataKey={yField || 'value'} fill="hsl(var(--primary))" />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -102,16 +110,23 @@ export function WineAnalyticsChart({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ [xField || "label"]: label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}
+                label={({ [xField || 'label']: label, percent }) =>
+                  `${label} ${(percent * 100).toFixed(0)}%`
+                }
                 outerRadius={120}
                 fill="#8884d8"
-                dataKey={yField || "value"}
+                dataKey={yField || 'value'}
               >
                 {actualChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
-              <Tooltip formatter={(value, name) => [value, yField || 'Bottles']} />
+              <Tooltip
+                formatter={(value, name) => [value, yField || 'Bottles']}
+              />
             </PieChart>
           </ResponsiveContainer>
         );
@@ -119,15 +134,23 @@ export function WineAnalyticsChart({
       case 'line':
         return (
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={actualChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <LineChart
+              data={actualChartData}
+              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={xField || "label"} />
+              <XAxis dataKey={xField || 'label'} />
               <YAxis />
-              <Tooltip 
+              <Tooltip
                 formatter={(value, name) => [value, yField || 'Count']}
                 labelFormatter={(label) => `${xField || 'Category'}: ${label}`}
               />
-              <Line type="monotone" dataKey={yField || "value"} stroke="hsl(var(--primary))" strokeWidth={2} />
+              <Line
+                type="monotone"
+                dataKey={yField || 'value'}
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+              />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -144,18 +167,26 @@ export function WineAnalyticsChart({
                       key={header}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
-                      {header.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      {header
+                        .replace(/([A-Z])/g, ' $1')
+                        .replace(/^./, (str) => str.toUpperCase())}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {data.map((row, index) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  <tr
+                    key={index}
+                    className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                  >
                     {Object.values(row).map((value, cellIndex) => (
-                      <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {typeof value === 'number' && value % 1 !== 0 
-                          ? value.toFixed(2) 
+                      <td
+                        key={cellIndex}
+                        className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                      >
+                        {typeof value === 'number' && value % 1 !== 0
+                          ? value.toFixed(2)
                           : String(value)}
                       </td>
                     ))}
@@ -182,9 +213,7 @@ export function WineAnalyticsChart({
       </div>
 
       {/* Chart */}
-      <div className="p-6">
-        {renderChart()}
-      </div>
+      <div className="p-6">{renderChart()}</div>
 
       {/* Raw Data Summary */}
       {data.length > 0 && actualChartType !== 'table' && (
