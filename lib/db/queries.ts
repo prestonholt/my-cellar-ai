@@ -716,7 +716,30 @@ export async function saveCellarData({
     }));
 
     if (winesToInsert.length > 0) {
-      await db.insert(wine).values(winesToInsert);
+      // Insert wines in batches to avoid hitting database limits
+      const BATCH_SIZE = 100; // Process 100 wines at a time
+      const totalBatches = Math.ceil(winesToInsert.length / BATCH_SIZE);
+
+      console.log(
+        `📝 Inserting ${winesToInsert.length} wines in ${totalBatches} batches of ${BATCH_SIZE}`,
+      );
+
+      for (let i = 0; i < winesToInsert.length; i += BATCH_SIZE) {
+        const batch = winesToInsert.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+
+        console.log(
+          `📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} wines)`,
+        );
+        await db.insert(wine).values(batch);
+
+        // Optional: Add a small delay between batches to reduce database load
+        if (i + BATCH_SIZE < winesToInsert.length) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+      }
+
+      console.log(`✅ Successfully inserted all ${winesToInsert.length} wines`);
     }
   } catch (error) {
     throw new ChatSDKError(

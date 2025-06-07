@@ -147,10 +147,12 @@ export async function POST(request: Request) {
     });
 
     // Store cellar data
+    console.log(`💾 Storing ${wines.length} wines in database...`);
     await saveCellarData({
       userId: session.user.id,
       data: wines,
     });
+    console.log('✅ Successfully stored cellar data in database');
 
     return NextResponse.json({
       data: wines,
